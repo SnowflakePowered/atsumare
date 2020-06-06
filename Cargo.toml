@@ -1,0 +1,18 @@
+[package]
+name = "atsumare"
+version = "0.1.0"
+authors = ["Ronny Chan <ronny6993@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "2"
+tokio = { version = "0.2", features = ["full"] }
+reqwest = { version = "0.10", features = ["cookies", "stream"] }
+anyhow = "1"
+serde = { version = "1.0", features = ["derive"] }
+regex = "1"
+lazy_static = "1.4.0"
+bytes = "0.5"
+futures-util = "0.3"
