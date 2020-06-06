@@ -8,6 +8,7 @@ use std::time::Duration;
 
 mod nointro;
 mod tosec;
+mod redump;
 
 const ATSUMARE_DOM_USER: &str = "ATSUMARE_DOM_USER";
 const ATSUMARE_DOM_PASS: &str = "ATSUMARE_DOM_PASS";
@@ -115,7 +116,7 @@ where
     let mut output_path = path.as_ref().to_path_buf();
     output_path.push(filename);
     let mut output = File::create(&output_path).await?;
-    
+
     let mut written_len: u64 = 0;
 
     let mut stream = stream;
@@ -160,12 +161,12 @@ async fn download_nointro<P: AsRef<Path>>(c: Option<Credentials>, p: P) -> Resul
         let (download_url, session) = nointro::fetch_download_url(&prepare, &session).await?;
 
         let (filename, length, stream) = nointro::fetch_zip(download_url, session).await?;
-        println!("No-Intro: Saving {:?}..", filename);
+        println!("DAT-o-Matic: Saving {:?}..", filename);
         do_download(&p, &filename, stream, |f| {
             println!("{:?}: {} of {}", filename, f, length)
         })
         .await?;
-        println!("Waiting 30 seconds to avoid throttling...");
+        println!("DAT-o-Matic: Waiting 30 seconds to avoid throttling...");
         delay_for(Duration::new(30, 0)).await;
     }
     Ok(())
@@ -178,9 +179,6 @@ async fn download_tosec<P: AsRef<Path>>(p: P) -> Result<()> {
         println!("{:?}: {} of {}", filename, f, length)
     })
     .await?;
-    println!("Waiting 30 seconds to avoid throttling...");
-    delay_for(Duration::new(30, 0)).await;
-
     Ok(())
 }
 
@@ -197,11 +195,14 @@ async fn main() -> Result<()> {
         match source {
             Sources::NoIntro(c) => download_nointro(c, &matches.output_dir).await?,
             Sources::TOSEC => download_tosec(&matches.output_dir).await?,
-            _ => (),
+            Sources::Redump(Some(c)) => {
+                let token = redump::fetch_authenticated_session(c).await?;
+                println!("{}", token);
+            },
+            _ => ()
         }
     }
 
-    // for (filename, length, stream) in tosec::fetch_zip().await? {
-
     Ok(())
+
 }
