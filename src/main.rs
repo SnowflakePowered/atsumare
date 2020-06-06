@@ -3,6 +3,7 @@ use clap::*;
 
 use std::env::var;
 use std::pin::Pin;
+use std::path::{PathBuf, Path};
 use std::time::Duration;
 
 mod nointro;
@@ -35,7 +36,7 @@ pub struct Credentials {
 }
 #[derive(Debug)]
 struct Options {
-    output_dir: String,
+    output_dir: PathBuf,
     sources: Vec<Sources>,
 }
 
@@ -72,7 +73,7 @@ fn get_matches() -> Options {
         .get_matches();
 
     let mut options = Options {
-        output_dir: matches.value_of("output").unwrap_or("unsorted").to_owned(),
+        output_dir: PathBuf::from(matches.value_of("output").unwrap_or("unsorted").to_owned()),
         sources: vec![],
     };
 
@@ -102,7 +103,8 @@ fn get_matches() -> Options {
     options
 }
 
-async fn do_download<F>(
+async fn do_download<P: AsRef<Path>, F>(
+    path: P,
     filename: &str,
     stream: Pin<Box<dyn Stream<Item = Result<Bytes>>>>,
     f: F,
@@ -110,7 +112,10 @@ async fn do_download<F>(
 where
     F: Fn(u64) -> (),
 {
-    let mut output = File::create(&filename).await?;
+    let mut output_path = path.as_ref().to_path_buf();
+    output_path.push(filename);
+    let mut output = File::create(&output_path).await?;
+    
     let mut written_len: u64 = 0;
 
     let mut stream = stream;
@@ -124,7 +129,7 @@ where
     Ok(written_len)
 }
 
-async fn download_nointro(c: Option<Credentials>) -> Result<()> {
+async fn download_nointro<P: AsRef<Path>>(c: Option<Credentials>, p: P) -> Result<()> {
     let session: Option<String>;
     let mut prepares = Vec::new();
     prepares.push(Prepare::public());
@@ -156,7 +161,7 @@ async fn download_nointro(c: Option<Credentials>) -> Result<()> {
 
         let (filename, length, stream) = nointro::fetch_zip(download_url, session).await?;
         println!("No-Intro: Saving {:?}..", filename);
-        do_download(&filename, stream, |f| {
+        do_download(&p, &filename, stream, |f| {
             println!("{:?}: {} of {}", filename, f, length)
         })
         .await?;
@@ -166,10 +171,10 @@ async fn download_nointro(c: Option<Credentials>) -> Result<()> {
     Ok(())
 }
 
-async fn download_tosec() -> Result<()> {
+async fn download_tosec<P: AsRef<Path>>(p: P) -> Result<()> {
     let (filename, length, stream) = tosec::fetch_zip().await?;
     println!("TOSEC: Saving {:?}..", filename);
-    do_download(&filename, stream, |f| {
+    do_download(&p, &filename, stream, |f| {
         println!("{:?}: {} of {}", filename, f, length)
     })
     .await?;
@@ -183,9 +188,15 @@ async fn download_tosec() -> Result<()> {
 async fn main() -> Result<()> {
     // println!("{:?}", );
     let matches = get_matches();
+    
+    if !matches.output_dir.exists() {
+        std::fs::create_dir(&matches.output_dir)?;
+    }
+
     for source in matches.sources {
         match source {
-            Sources::NoIntro(c) => download_nointro(c).await?,
+            Sources::NoIntro(c) => download_nointro(c, &matches.output_dir).await?,
+            Sources::TOSEC => download_tosec(&matches.output_dir).await?,
             _ => (),
         }
     }
