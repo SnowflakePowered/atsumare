@@ -2,13 +2,13 @@ use anyhow::Result;
 use clap::*;
 
 use std::env::var;
+use std::path::{Path, PathBuf};
 use std::pin::Pin;
-use std::path::{PathBuf, Path};
 use std::time::Duration;
 
 mod nointro;
-mod tosec;
 mod redump;
+mod tosec;
 
 const ATSUMARE_DOM_USER: &str = "ATSUMARE_DOM_USER";
 const ATSUMARE_DOM_PASS: &str = "ATSUMARE_DOM_PASS";
@@ -182,11 +182,40 @@ async fn download_tosec<P: AsRef<Path>>(p: P) -> Result<()> {
     Ok(())
 }
 
+async fn download_redump<P: AsRef<Path>>(c: Option<Credentials>, p: P) -> Result<()> {
+    let session: Option<String>;
+    if let Some(credentials) = c {
+        match redump::fetch_authenticated_session(&credentials).await.ok() {
+            Some(logged_in) => {
+                session = Some(logged_in);
+                println!("Redump: Logged in as {}.", credentials.username);
+            }
+            None => {
+                println!("Redump: Invalid credentials.");
+                session = None;
+            }
+        }
+    } else {
+        session = None
+    }
+
+    let anchors = redump::fetch_download_urls(&session).await?;
+    for anchor in anchors {
+        let (filename, length, stream) = redump::fetch_zip(anchor, &session).await?;
+        println!("Redump: Saving {:?}..", filename);
+        do_download(&p, &filename, stream, |f| {
+            println!("{:?}: {} of {}", filename, f, length)
+        })
+        .await?;
+    }
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // println!("{:?}", );
     let matches = get_matches();
-    
+
     if !matches.output_dir.exists() {
         std::fs::create_dir(&matches.output_dir)?;
     }
@@ -195,14 +224,8 @@ async fn main() -> Result<()> {
         match source {
             Sources::NoIntro(c) => download_nointro(c, &matches.output_dir).await?,
             Sources::TOSEC => download_tosec(&matches.output_dir).await?,
-            Sources::Redump(Some(c)) => {
-                let token = redump::fetch_authenticated_session(c).await?;
-                println!("{}", token);
-            },
-            _ => ()
+            Sources::Redump(c) => download_redump(c, &matches.output_dir).await?,
         }
     }
-
     Ok(())
-
 }

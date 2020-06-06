@@ -162,7 +162,7 @@ pub async fn fetch_zip<S: AsRef<str>>(
         .get("content-disposition")
         .and_then(|s| s.to_str().map(|s| s.to_string()).ok())
         .map(|s| String::from(&s["attachment; filename=\"".len()..s.len() - 1]))
-        .unwrap_or(format!("nointro-{}.zip", session.as_ref()));
+        .ok_or(anyhow!("Unable to fetch attachment filename"))?;
 
     Ok((
         content_diposition,
