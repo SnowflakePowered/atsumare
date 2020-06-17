@@ -9,6 +9,7 @@ use std::time::Duration;
 mod nointro;
 mod redump;
 mod tosec;
+mod convert;
 
 const ATSUMARE_DOM_USER: &str = "ATSUMARE_DOM_USER";
 const ATSUMARE_DOM_PASS: &str = "ATSUMARE_DOM_PASS";
@@ -154,6 +155,7 @@ async fn download_nointro<P: AsRef<Path>>(c: Option<Credentials>, p: P) -> Resul
             }
         }
     } else {
+        println!("No-Intro: downloading unauthenticated");
         session = None
     }
 
@@ -196,6 +198,7 @@ async fn download_redump<P: AsRef<Path>>(c: Option<Credentials>, p: P) -> Result
             }
         }
     } else {
+        println!("Redump: downloading unauthenticated");
         session = None
     }
 

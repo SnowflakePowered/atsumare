@@ -17,3 +17,7 @@ lazy_static = "1.4.0"
 bytes = "0.5"
 futures-util = "0.3"
 scraper = "0.12"
+
+# 
+listinfo = { version = "0.3.4", features = ["deserialize"] }
+quick-xml = { version = "0.18", features = [ "serialize" ] }

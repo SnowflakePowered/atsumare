@@ -1,7 +1,10 @@
 use crate::Credentials;
+use crate::convert::convert_to_xml_dat;
+
 use anyhow::{anyhow, Error, Result};
 use bytes::Bytes;
 use futures_util::TryStreamExt;
+use futures_util::stream;
 use lazy_static::lazy_static;
 use regex::Regex;
 use reqwest::redirect::Policy;
@@ -128,28 +131,28 @@ pub async fn fetch_zip<S: AsRef<str>>(
     .await?;
 
     let headers = download_req.headers();
-
-    if !headers
-        .get("content-type")
-        .map(|t| {
-            t == "application/zip"
-                || t == "application/x-zip"
-                || t == "application/x-ms-download; charset=ISO-8859-1"
-        })
-        .unwrap_or(false)
-    {
-        return Err(anyhow!("Response was not a valid ZIP archive or DAT file"));
-    }
-
     let content_diposition = headers
         .get("content-disposition")
         .and_then(|s| s.to_str().map(|s| s.to_string()).ok())
         .map(|s| String::from(&s["attachment; filename=\"".len()..s.len() - 1]))
         .ok_or(anyhow!("Unable to fetch attachment filename"))?;
 
-    Ok((
-        content_diposition,
-        download_req.content_length().unwrap_or(0),
-        Box::pin(download_req.bytes_stream().map_err(|e| Error::new(e))),
-    ))
+    match headers.get("content-type").and_then(|f| f.to_str().ok()) {
+        Some("application/x-zip") | Some("application/zip") => {
+            Ok((
+                content_diposition,
+                download_req.content_length().unwrap_or(0),
+                Box::pin(download_req.bytes_stream().map_err(|e| Error::new(e))),
+            ))
+        },
+        Some("application/x-ms-download; charset=ISO-8859-1") => {
+            // ISO-8859-1 is the same as windows-1252
+            let content = download_req.text_with_charset("windows-1252").await?;
+            let bytes = convert_to_xml_dat(&content, "redump.org")?;
+            
+            Ok((content_diposition, bytes.len() as u64, Box::pin(stream::iter(vec![Ok(bytes)].into_iter()))))
+        },
+        Some(i) => Err(anyhow!("Response was not a valid ZIP archive or DAT file: {}", i)),
+        None => Err(anyhow!("Response did not give valid content-type"))
+    }
 }

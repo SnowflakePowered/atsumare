@@ -39,6 +39,8 @@ dependencies = [
  "clap",
  "futures-util",
  "lazy_static",
+ "listinfo",
+ "quick-xml",
  "regex",
  "reqwest",
  "scraper",
@@ -402,6 +404,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hex"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
+
+[[package]]
 name = "html5ever"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -555,6 +563,17 @@ name = "libc"
 version = "0.2.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9457b06509d27052635f90d6466700c65095fdf75409b3fbdd903e988b886f49"
+
+[[package]]
+name = "listinfo"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c12593b67d487db6dc44c1c401d2140fb1fd0085b84e0b5b7b3791bd613195f"
+dependencies = [
+ "hex",
+ "nom",
+ "serde",
+]
 
 [[package]]
 name = "log"
@@ -720,6 +739,16 @@ name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72ef4a56884ca558e5ddb05a1d1e7e1bfd9a68d9ed024c21704cc98872dae1bb"
+
+[[package]]
+name = "nom"
+version = "6.0.0-alpha1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25020779544bf717b917323b42f23c9dbef1bd2b97b576df6484a0c8709705c6"
+dependencies = [
+ "memchr",
+ "version_check",
+]
 
 [[package]]
 name = "num_cpus"
@@ -918,6 +947,16 @@ dependencies = [
  "lazy_static",
  "regex",
  "url 2.1.1",
+]
+
+[[package]]
+name = "quick-xml"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3cc440ee4802a86e357165021e3e255a9143724da31db1e2ea540214c96a0f82"
+dependencies = [
+ "memchr",
+ "serde",
 ]
 
 [[package]]
