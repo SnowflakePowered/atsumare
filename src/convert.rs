@@ -2,7 +2,7 @@ use anyhow::Result;
 use bytes::Bytes;
 use listinfo::de;
 use listinfo::parse;
-use quick_xml::events::{BytesEnd, BytesStart, BytesText, BytesDecl, Event};
+use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
 use quick_xml::Writer;
 use serde::{self, Deserialize, Serialize};
 use std::io::Cursor;
@@ -45,7 +45,12 @@ struct Game<'a> {
     rom: Vec<Rom<'a>>,
 }
 
-pub fn convert_to_xml_dat<'a, 'b>(s: &'a str, homepage: &'b str) -> Result<Bytes> {
+
+pub fn convert_to_xml_dat<'a, 'b>(
+    s: &'a str,
+    homepage: &'b str,
+    normalizer: Option<fn(&str) -> String>,
+) -> Result<Bytes> {
     let parsed_cmp = parse::parse_document(s)?;
     let doc: Datafile = de::from_document(&parsed_cmp)?;
     let mut writer = Writer::new_with_indent(Cursor::new(Vec::new()), b'\t', 1);
@@ -58,13 +63,17 @@ pub fn convert_to_xml_dat<'a, 'b>(s: &'a str, homepage: &'b str) -> Result<Bytes
     writer.write_event(Event::Start(datafile))?;
     push_header(&doc, homepage, &mut writer)?;
     for game in doc.game.iter() {
-        push_game(game, doc.clrmamepro.category, &mut writer)?;
+        push_game(game, doc.clrmamepro.category, &mut writer, normalizer)?;
     }
     writer.write_event(Event::End(BytesEnd::borrowed(b"datafile")))?;
     Ok(Bytes::from(writer.into_inner().into_inner()))
 }
 
-fn push_elem_text<'a>(name: &[u8], text: &'a str, writer: &mut Writer<Cursor<Vec<u8>>>) -> Result<()> {
+fn push_elem_text<'a>(
+    name: &[u8],
+    text: &'a str,
+    writer: &mut Writer<Cursor<Vec<u8>>>,
+) -> Result<()> {
     writer.write_event(Event::Start(BytesStart::borrowed_name(name)))?;
     writer.write_event(Event::Text(BytesText::from_plain_str(text)))?;
     writer.write_event(Event::End(BytesEnd::borrowed(name)))?;
@@ -72,7 +81,7 @@ fn push_elem_text<'a>(name: &[u8], text: &'a str, writer: &mut Writer<Cursor<Vec
 }
 
 fn push_header(doc: &Datafile, homepage: &str, writer: &mut Writer<Cursor<Vec<u8>>>) -> Result<()> {
-    writer.write_event(Event::Start( BytesStart::borrowed_name(b"header")))?;
+    writer.write_event(Event::Start(BytesStart::borrowed_name(b"header")))?;
     push_elem_text(b"name", doc.clrmamepro.name, writer)?;
     push_elem_text(b"description", doc.clrmamepro.description, writer)?;
     push_elem_text(b"version", doc.clrmamepro.version, writer)?;
@@ -82,9 +91,22 @@ fn push_header(doc: &Datafile, homepage: &str, writer: &mut Writer<Cursor<Vec<u8
     Ok(())
 }
 
-fn push_game(game: &Game, category: &str, writer: &mut Writer<Cursor<Vec<u8>>>) -> Result<()> {
+fn push_game<T>(
+    game: &Game,
+    category: &str,
+    writer: &mut Writer<Cursor<Vec<u8>>>,
+    normalizer: Option<T>,
+) -> Result<()>
+where
+    T: Fn(&str) -> String,
+{
     let mut elem = BytesStart::borrowed_name(b"game");
-    elem.push_attribute(("name", game.name));
+    if let Some(f) = normalizer {
+        let normalized = f(game.description);
+        elem.push_attribute(("name", normalized.as_str()));
+    } else {
+        elem.push_attribute(("name", game.description));
+    }
     writer.write_event(Event::Start(elem))?;
     push_elem_text(b"category", category, writer)?;
     push_elem_text(b"description", game.description, writer)?;

@@ -47,8 +47,8 @@ fn get_matches() -> Options {
         .version(crate_version!())
         .arg(
             Arg::with_name("nointro")
-                .long("datomatic")
-                .help("Download DATs from DAT-o-Matic"),
+                .long("nointro")
+                .help("Download DATs from No-Intro DAT-o-Matic"),
         )
         .arg(
             Arg::with_name("tosec")
@@ -67,7 +67,7 @@ fn get_matches() -> Options {
                 .multiple(true),
         )
         .arg(
-            Arg::with_name("output")
+            Arg::with_name("outdir")
                 .required(true)
                 .help("The output directory")
                 .index(1),
@@ -136,10 +136,6 @@ async fn download_nointro<P: AsRef<Path>>(c: Option<Credentials>, p: P) -> Resul
     let mut prepares = Vec::new();
     prepares.push(Prepare::public());
 
-    // DAT-o-matic doesn't seem to actually check credentials when getting the private DAT (!)
-    // The login logic still exists... but we don't really need it.. until they fix their site..
-    prepares.push(Prepare::private());
-
     if let Some(credentials) = c {
         match nointro::fetch_authenticated_session(&credentials)
             .await
@@ -148,6 +144,9 @@ async fn download_nointro<P: AsRef<Path>>(c: Option<Credentials>, p: P) -> Resul
             Some(logged_in) => {
                 session = Some(logged_in);
                 println!("No-Intro: Logged in as {}.", credentials.username);
+                
+                // DAT-o-matic requires a valid login to properly generate a private Daily DAT pack
+                prepares.push(Prepare::private());
             }
             None => {
                 println!("No-Intro: Invalid credentials.");
@@ -155,7 +154,7 @@ async fn download_nointro<P: AsRef<Path>>(c: Option<Credentials>, p: P) -> Resul
             }
         }
     } else {
-        println!("No-Intro: downloading unauthenticated");
+        println!("No-Intro: Downloading unauthenticated");
         session = None
     }
 
@@ -198,7 +197,7 @@ async fn download_redump<P: AsRef<Path>>(c: Option<Credentials>, p: P) -> Result
             }
         }
     } else {
-        println!("Redump: downloading unauthenticated");
+        println!("Redump: Downloading unauthenticated");
         session = None
     }
 

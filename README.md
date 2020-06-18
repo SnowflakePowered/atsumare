@@ -14,7 +14,7 @@ ATSUMARE_REDUMP_PASS=
 ```
 
 ```
-$ atsumare (--datomatic | --redump | --tosec )
+$ atsumare outdir (--nointro | --redump | --tosec )
 ```
 ## Building
 

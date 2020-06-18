@@ -112,7 +112,8 @@ pub async fn fetch_download_urls<S: AsRef<str>>(session: &Option<S>) -> Result<V
         .map(|n| n.attr("href"))
         .flat_map(|n| n)
         .filter(|n| n.starts_with("/datfile/"))
-        .map(|n| format!("{}{}", HTTP_ROOT, n))
+        // get the serial,version DAT
+        .map(|n| format!("{}{}/serial,version", HTTP_ROOT, n))
         .collect::<Vec<_>>();
     Ok(anchors)
 }
@@ -148,11 +149,39 @@ pub async fn fetch_zip<S: AsRef<str>>(
         Some("application/x-ms-download; charset=ISO-8859-1") => {
             // ISO-8859-1 is the same as windows-1252
             let content = download_req.text_with_charset("windows-1252").await?;
-            let bytes = convert_to_xml_dat(&content, "redump.org")?;
+            let bytes = convert_to_xml_dat(&content, "redump.org", Some(bios_normalizing))?;
             
             Ok((content_diposition, bytes.len() as u64, Box::pin(stream::iter(vec![Ok(bytes)].into_iter()))))
         },
         Some(i) => Err(anyhow!("Response was not a valid ZIP archive or DAT file: {}", i)),
         None => Err(anyhow!("Response did not give valid content-type"))
     }
+}
+
+// really hacky normalization function.
+fn bios_normalizing(orig: &str) -> String {
+    let mut working = orig.replace("Kernel ", ""); // replace "Kernel Version" with just "Kernel"
+    working.insert_str(0, "[BIOS] "); // insert BIOS tag
+    // hacky way to insert "World" region in first tag.
+    let mut region_str = Vec::new();
+    
+    // playstation BIOS names ends with A) for USA, J) for Japan, E) for Europe. T) is also Japan apparently.
+    // GCN bioses from redump contain names such as DOL-001(USA) / DOL-001(JPN), etc.
+    if working.contains("(USA)") || working.ends_with(" A)") {
+        region_str.push("USA");
+    }
+    if working.contains("(JPN)") || working.ends_with(" J)") || working.ends_with(" T)") {
+        region_str.push("Japan");
+    }
+    if  working.contains("(EUR)") || working.ends_with(" E)") {
+        region_str.push("Europe");
+    }
+
+    if region_str.is_empty() {
+        region_str.push("World");
+    }
+    
+    let region_str = region_str.into_iter().collect::<Vec<_>>().join(", ");
+    let working = working.replacen(" (", &format!(" ({}) (", region_str), 1);
+    working
 }
