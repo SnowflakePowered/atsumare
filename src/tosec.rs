@@ -5,7 +5,7 @@ use reqwest::ClientBuilder;
 use tokio::stream::Stream;
 use std::pin::Pin;
 
-const HTTPS_DOWNLOAD: &str = "https://www.tosecdev.org/downloads/category/48-2019-12-24?download=95:tosec-dat-pack-complete-3012-tosec-v2019-12-24";
+const HTTPS_DOWNLOAD: &str = "https://www.tosecdev.org/downloads/category/50-2020-07-29?download=99:tosec-dat-pack-complete-3036-tosec-v2020-07-29";
 
 pub async fn fetch_zip() -> Result<(String, u64, Pin<Box<dyn Stream<Item = Result<Bytes>>>>)> {
     let download_req = ClientBuilder::new().build()?.get(HTTPS_DOWNLOAD).send().await?;
