@@ -75,7 +75,7 @@ fn get_matches() -> Options {
         .get_matches();
 
     let mut options = Options {
-        output_dir: PathBuf::from(matches.value_of("output").unwrap_or("unsorted").to_owned()),
+        output_dir: PathBuf::from(matches.value_of("outdir").unwrap_or("unsorted").to_owned()),
         sources: vec![],
     };
 
@@ -215,9 +215,8 @@ async fn download_redump<P: AsRef<Path>>(c: Option<Credentials>, p: P) -> Result
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // println!("{:?}", );
     let matches = get_matches();
-
+    
     if !matches.output_dir.exists() {
         std::fs::create_dir(&matches.output_dir)?;
     }

@@ -11,7 +11,7 @@ use std::pin::Pin;
 use crate::Credentials;
 
 const HTTPS_ROOT: &str = "https://datomatic.no-intro.org/";
-const HTTPS_DAILY: &str = "https://datomatic.no-intro.org/?page=download&op=daily";
+const HTTPS_DAILY: &str = "https://datomatic.no-intro.org/?page=download&op=daily&s=64";
 
 lazy_static! {
     static ref DOWNLOAD_RE: Regex =
@@ -21,19 +21,22 @@ lazy_static! {
 #[derive(Debug, Serialize)]
 pub struct Prepare {
     dat_type: &'static str,
-    prepare_2: &'static str,
+    daily_download: &'static str,
     private: Option<&'static str>,
+    recaptcha_response: &'static str,
 }
 
 #[derive(Debug, Serialize)]
 struct Download {
-    download: &'static str,
+    wtwtwtf: &'static str,
+    what_im_doing_here: &'static str,
 }
 
 impl Download {
     const fn download() -> Self {
         Download {
-            download: "Download",
+            wtwtwtf: "Download",
+            what_im_doing_here: ""
         }
     }
 }
@@ -59,16 +62,18 @@ impl Prepare {
     pub const fn public() -> Prepare {
         Prepare {
             dat_type: "standard",
-            prepare_2: "Prepare",
+            daily_download: "Prepare",
             private: None,
+            recaptcha_response: ""
         }
     }
 
     pub const fn private() -> Prepare {
         Prepare {
             dat_type: "standard",
-            prepare_2: "Prepare",
+            daily_download: "Prepare",
             private: Some("Ok"),
+            recaptcha_response: ""
         }
     }
 }
@@ -107,7 +112,8 @@ pub async fn fetch_download_url(
         .build()?
         .post(HTTPS_DAILY)
         .form(prepare)
-        .header("Content-Type", "application/x-www-form-urlencoded");
+        .header("Referer", HTTPS_DAILY)
+        .header("Origin", HTTPS_ROOT);
 
     let download_req = if let Some(session) = session {
         download_req.header("Cookie", format!("PHPSESSID={}", session))
