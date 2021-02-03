@@ -2,6 +2,8 @@
 
 Respectful DAT downloader for use with [shiratsu](https://github.com/SnowflakePowered/shiratsu). Supports [TOSEC](https://www.tosecdev.org/), [DAT-o-Matic](https://datomatic.no-intro.org/), and [redump](http://redump.org/).
 
+Please do not use this to strain database resources. See if [shiragame](https://github.com/snowflakepowered/shiragame) will meet your needs instead.
+
 ## Usage
 
 Optionally set the following environment variables. If these variables are set, atsumare will attempt to get an authenticated sessions to fetch private DATs.
