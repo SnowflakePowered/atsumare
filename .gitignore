@@ -1,3 +1,6 @@
 /target
 *.zip
 *.dat
+unsorted/
+!unsorted/.gitkeep
+unsorted - Copy/
